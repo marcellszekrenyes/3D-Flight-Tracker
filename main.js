@@ -73,7 +73,7 @@ function setObjectLayers(){
   }
 }
 
-importer("./public/lowResGlobeGrey.json");
+importer("./lowResGlobeGrey.json");
 animate();
 
 // //INNEN COPY
