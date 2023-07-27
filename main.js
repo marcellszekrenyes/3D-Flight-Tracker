@@ -1,8 +1,4 @@
 import * as THREE from 'three';
-import { INTERSECTION, Brush, Evaluator } from 'three-bvh-csg';
-import { fetchJSONData } from './JSONController';
-import { convertCoordinates, generateIndices } from "./coordinateConverter";
-import { exportSceneToJSON } from './exporter';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 
