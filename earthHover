@@ -1,0 +1,230 @@
+import * as THREE from 'three';
+import { TWEEN } from './flightController';
+import * as dat from 'dat.gui';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { displayAircrafts, hideAircrafts } from './flightController';
+
+
+let raycaster = new THREE.Raycaster();
+let mouse = new THREE.Vector2();
+let lastHoveredCountry = "";
+
+function initializeGlobe(file, renderer, camera, scene, loader) {
+    const controls = new OrbitControls( camera, renderer.domElement );
+    controls.minDistance  = 8;
+    controls.maxDistance  = 15;
+    controls.enablePan = false; //disables camera pan
+    const sphere = new THREE.Mesh(new THREE.SphereGeometry( 3.795, 256, 128 ), new THREE.MeshBasicMaterial({color: new THREE.Color("black"),}));
+    sphere.name = 'sphere';
+    const reflection = generateAtmosphere(sphere)
+    sphere.add(reflection)
+    scene.add(sphere);
+      
+    importGlobe(file, loader, scene, camera, renderer);
+}    
+
+//loads globe from JSON
+function importGlobe(file, loader, scene, camera, renderer) {
+    loader.load(
+        // resource URL
+        file,
+
+        // onLoad callback
+        // Here the loaded data is assumed to be an object
+        function ( obj ) {
+          // Add the loaded object to the scene
+          scene.add( obj );
+        },
+    
+        // onProgress callback
+        function ( xhr ) {
+          console.log('Globe ' + (xhr.loaded / xhr.total * 100) + '% loaded' );
+        },
+    
+        // onError callback
+        function ( err ) {
+          console.error( 'An error happened' );
+        }
+      );
+}
+
+//Hover effect for thre country polygons
+function onPointerMove( event, camera, scene, renderer, flightData) {
+  if ( event.isPrimary === false ) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+
+  mouse.x = ( ( event.clientX - rect.left ) / ( rect.right - rect.left ) ) * 2 - 1;
+  mouse.y = - ( ( event.clientY - rect.top ) / ( rect.bottom - rect.top) ) * 2 + 1;
+
+  checkIntersection(scene, renderer, camera, flightData);
+}
+//Hover effect for thre country polygons
+function checkIntersection(scene, renderer, camera, flightData) {
+  raycaster.setFromCamera( mouse, camera );
+  const intersects = raycaster.intersectObject( scene, true );
+
+if ( intersects.length > 0 && intersects[0].object.name != 'sphere') {
+    if(lastHoveredCountry == ""){
+      lastHoveredCountry = intersects[0].object;
+    } else if(lastHoveredCountry.uuid != intersects[0].uuid) {
+      for(let i = 1; i <= lastHoveredCountry.parent.children.length-1; i++){
+        if(lastHoveredCountry.parent.children[i].material.isMeshBasicMaterial == true){
+        lastHoveredCountry.parent.children[i].material = new THREE.MeshBasicMaterial({color: 'rgb(10, 11, 12)'});//'rgb(41, 41, 43)'
+        lastHoveredCountry.parent.children[i].layers.set(0);
+        }
+      }
+      hideAircrafts(scene);
+      lastHoveredCountry = intersects[0].object;
+    }
+
+      let selectedObject = intersects[0].object;
+      for(let i = 1; i <= selectedObject.parent.children.length-1; i++){
+        if(lastHoveredCountry.parent.children[i].material.isMeshBasicMaterial == true){
+        selectedObject.parent.children[i].material = new THREE.MeshBasicMaterial({color: 'rgb(41, 41, 43)'});
+        selectedObject.parent.children[i].material.color.set( 'rgb(41, 41, 43)' );
+        selectedObject.parent.children[i].layers.set(1);
+        }
+      }
+      displayAircrafts(scene, renderer, camera, selectedObject.parent.name, flightData);
+  } else if(intersects.length == 0 && lastHoveredCountry != ""){
+    for(let i = 1; i <= lastHoveredCountry.parent.children.length-1; i++){
+      if(lastHoveredCountry.parent.children[i].material.isMeshBasicMaterial == true){
+        lastHoveredCountry.parent.children[i].material = new THREE.MeshBasicMaterial({color: 'rgb(10, 11, 12)'});
+        lastHoveredCountry.parent.children[i].layers.set(0);
+      }
+    }
+    TWEEN.removeAll();
+    hideAircrafts(scene);
+    lastHoveredCountry = "";
+  }
+}
+
+//Atmosphere around the globe
+function generateAtmosphere(mesh){
+    //Reflection on globe
+      let reflection	= new THREE.Object3D();
+      let geometry	= mesh.geometry.clone()
+      let material	= createAtmosphereMaterial()
+      material.uniforms.glowColor.value	= new THREE.Color('rgb(35, 35, 179)')
+      material.uniforms.coeficient.value	= 0.6;
+      material.uniforms.power.value		= 3;
+      let insideMesh	= new THREE.Mesh(geometry, material );
+      reflection.add( insideMesh );
+  
+  //Glow around sphere
+      let atmosphere	= new THREE.SphereGeometry( 4.05, 256, 128 )
+      let atmosphereMaterial	= createAtmosphereMaterial()
+      atmosphereMaterial.uniforms.glowColor.value	= new THREE.Color('rgb(35, 35, 179)')
+      atmosphereMaterial.uniforms.coeficient.value	= 0;
+      atmosphereMaterial.uniforms.power.value		= 1.8;
+      atmosphereMaterial.side	= THREE.BackSide
+      let outsideMesh	= new THREE.Mesh( atmosphere, atmosphereMaterial );
+      reflection.add( outsideMesh );
+  
+      // let datGUI	= new dat.GUI()
+      // addAtmosphereMaterialGui(material, datGUI)
+      // addAtmosphereMaterialGui(atmosphereMaterial, datGUI)
+  
+    return reflection;
+}
+//Atmosphere around the globe
+function createAtmosphereMaterial(){
+      let vertexShader	= [
+          'varying vec3	vVertexWorldPosition;',
+          'varying vec3	vVertexNormal;',
+  
+          'varying vec4	vFragColor;',
+  
+          'void main(){',
+          '	vVertexNormal	= normalize(normalMatrix * normal);',
+  
+          '	vVertexWorldPosition	= (modelMatrix * vec4(position, 1.0)).xyz;',
+  
+          '	// set gl_Position',
+          '	gl_Position	= projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+          '}',
+  
+          ].join('\n')
+      let fragmentShader	= [
+          'uniform vec3	glowColor;',
+          'uniform float	coeficient;',
+          'uniform float	power;',
+  
+          'varying vec3	vVertexNormal;',
+          'varying vec3	vVertexWorldPosition;',
+  
+          'varying vec4	vFragColor;',
+  
+          'void main(){',
+          '	vec3 worldCameraToVertex= vVertexWorldPosition - cameraPosition;',
+          '	vec3 viewCameraToVertex	= (viewMatrix * vec4(worldCameraToVertex, 0.0)).xyz;',
+          '	viewCameraToVertex	= normalize(viewCameraToVertex);',
+          '	float intensity		= pow(coeficient + dot(vVertexNormal, viewCameraToVertex), power);',
+          '	gl_FragColor		= vec4(glowColor, intensity);',
+          '}',
+      ].join('\n')
+  
+      // create custom material from the shader code above
+      //   that is within specially labeled script tags
+      let material	= new THREE.ShaderMaterial({
+          uniforms: { 
+              coeficient	: {
+                  type	: "f", 
+                  value	: 1.0
+              },
+              power		: {
+                  type	: "f",
+                  value	: 2
+              },
+              glowColor	: {
+                  type	: "c",
+                  value	: new THREE.Color('pink')
+              },
+          },
+          vertexShader	: vertexShader,
+          fragmentShader	: fragmentShader,
+          //blending	: THREE.AdditiveBlending,
+          transparent	: true,
+          depthWrite	: false,
+      });
+      return material
+}
+//UI for modifying the reflection around the globe
+function addAtmosphereMaterialGui(material, datGui){
+      datGui = new dat.GUI()
+      var uniforms	= material.uniforms
+      // options
+      var options  = {
+        coeficient	: uniforms['coeficient'].value,
+        power		: uniforms['power'].value,
+        glowColor	: '#'+uniforms.glowColor.value.getHexString(),
+        presetFront	: function(){
+          options.coeficient	= 1
+          options.power		= 2
+          onChange()
+        },
+        presetBack	: function(){
+          options.coeficient	= 0.5
+          options.power		= 4.0
+          onChange()
+        },
+      }
+      var onChange = function(){
+        uniforms['coeficient'].value	= options.coeficient
+        uniforms['power'].value		= options.power
+        uniforms.glowColor.value.set( options.glowColor ); 
+      }
+      onChange()
+      
+      // config datGui
+      datGui.add( options, 'coeficient'	, 0.0 , 2)
+        .listen().onChange( onChange )
+      datGui.add( options, 'power'		, 0.0 , 5)
+        .listen().onChange( onChange )
+      datGui.addColor( options, 'glowColor' )
+        .listen().onChange( onChange )
+      datGui.add( options, 'presetFront' )
+      datGui.add( options, 'presetBack' )
+}
+
+export {initializeGlobe, onPointerMove}

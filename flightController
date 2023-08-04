@@ -1,0 +1,243 @@
+import * as THREE from 'three';
+import TWEEN from '@tweenjs/tween.js';
+import { sphericalToCartesian, convertAirplaneLocation } from './coordinateConverter';
+import { drawCurve, getControlPoints } from './arcDrawer';
+
+
+function importAircraft(file, renderer, camera, scene, loader) {
+  loader.load(
+    // resource URL
+    file,
+
+    // onLoad callback
+    // Here the loaded data is assumed to be an object
+    function ( obj ) {
+      // Add the loaded object to the scene
+      obj.layers.set(2);
+      scene.add( obj );
+    },
+
+    // onProgress callback
+    function ( xhr ) {
+      console.log('AC model ' + (xhr.loaded / xhr.total * 100) + ' % loaded' );
+    },
+
+    // onError callback
+    function ( err ) {
+      console.error( 'An error happened' );
+    }
+  );
+}
+
+async function flightController(scene) {
+  const flights = await fetchFlightData();
+  const airports = await fetchAirportData();
+  const sortedAirports = sortActiveAirports(airports, getActiveAirports(flights), scene);
+  generateActiveRoutes(scene, flights, sortedAirports);
+  generateAircrafts(await flights, sortedAirports, scene);
+
+  const data = {
+    flights: flights,
+    airports: airports,
+    sortedAirports: sortedAirports
+  };
+
+  return data;
+}
+
+async function fetchFlightData() {
+  const response = await fetch("./public/flights.json");
+  const flights = await response.json();
+
+  return flights;
+}
+
+async function fetchAirportData() {
+  const response = await fetch("./public/airports.json");
+  const airports = await response.json();
+
+  return airports;
+}
+
+function getActiveAirports(flights) {
+  let departuresAndArrivals = [];
+  for (let i = 0; i < flights.response.length-1; i++) {
+    departuresAndArrivals.push(flights.response[i].arr_icao);
+    departuresAndArrivals.push(flights.response[i].dep_icao);
+  }
+
+  departuresAndArrivals = [...new Set(departuresAndArrivals)]; //removes duplicates
+
+  return departuresAndArrivals;
+}
+
+function sortActiveAirports(airports, activeAirports, scene){
+  const sortedAirports = [];
+
+  for (let i = 0; i < airports.response.length-1; i++) {
+    if(activeAirports.includes(airports.response[i].icao_code)) {
+      addAircraft(sphericalToCartesian(airports.response[i].lng, airports.response[i].lat), scene);
+      sortedAirports.push(airports.response[i]);
+    }
+  }
+
+  return sortedAirports;
+}
+
+function generateActiveRoutes(scene, flights, sortedAirports) {
+  for(let i = 0; i <= flights.response.length-1; i++) { //flights.response.length-1
+    let startPoint = new THREE.Vector3();
+    let endPoint = new THREE.Vector3();
+    for(let j = 0; j <= sortedAirports.length -1 ; j++){
+      if(sortedAirports[j].icao_code == flights.response[i].dep_icao){
+        startPoint = sphericalToCartesian(sortedAirports[j].lng, sortedAirports[j].lat);
+      }
+      if(sortedAirports[j].icao_code == flights.response[i].arr_icao){
+        endPoint = sphericalToCartesian(sortedAirports[j].lng, sortedAirports[j].lat);
+      }
+    }
+
+    const spline =  drawCurve(startPoint, endPoint);
+    spline.layers.set(2);
+    spline.name = flights.response[i].dep_icao + ', ' + flights.response[i].arr_icao;
+    scene.add(spline);
+  }
+}
+
+function generateAircrafts(flights, sortedAirports, scene) {
+  for(let i = 0; i <= flights.response.length - 1 ; i++) { //flights.response.length - 1
+    const airplanePosition = convertAirplaneLocation(flights.response[i].lng, flights.response[i].lat, 4);
+
+    let startPoint = new THREE.Vector3();
+    let endPoint = new THREE.Vector3();
+
+    for(let j = 0; j <= sortedAirports.length -1 ; j++){
+      if(sortedAirports[j].icao_code == flights.response[i].dep_icao){
+        startPoint = sphericalToCartesian(sortedAirports[j].lng, sortedAirports[j].lat);
+      }
+      if(sortedAirports[j].icao_code == flights.response[i].arr_icao){
+        endPoint = sphericalToCartesian(sortedAirports[j].lng, sortedAirports[j].lat);
+      }
+    }
+
+    const controlPoints = getControlPoints(startPoint, endPoint, false);
+    const splinePlane = new THREE.Plane().setFromCoplanarPoints(new THREE.Vector3(), controlPoints[0], controlPoints[1]);
+
+    const airplaneProjection = airplanePosition.projectOnPlane(splinePlane.normal);
+    
+    const angleToProjectedPoint = startPoint.angleTo(airplaneProjection);
+    const angleToEndpoint = startPoint.angleTo(endPoint);
+    const curve = new THREE.CubicBezierCurve3(startPoint, controlPoints[0], controlPoints[1], endPoint);
+    const pointOnCurve = curve.getPointAt(angleToProjectedPoint/angleToEndpoint);
+
+    const planeNormal = splinePlane.normal;
+
+    const aircraft = addAircraft(pointOnCurve, scene);
+    aircraft.lookAt(0, 0, 0);
+
+    aircraft.name = flights.response[i].dep_icao + ', ' + flights.response[i].arr_icao;
+
+    const quaternion = aircraft.getWorldQuaternion(new THREE.Quaternion());
+
+    const direction = new THREE.Vector3(1, 0, 0).applyQuaternion( quaternion );
+
+    const projectedDirection = splinePlane.projectPoint(direction, new THREE.Vector3());
+
+    const rotationAngle = direction.angleTo(projectedDirection);
+
+    aircraft.rotateZ(rotationAngle);
+
+    const quaternionAfterRotation = aircraft.getWorldQuaternion(new THREE.Quaternion());
+    const directionAfterRotation = new THREE.Vector3(1, 0, 0).applyQuaternion( quaternionAfterRotation );
+
+    const angleToPlaneNormal = directionAfterRotation.angleTo(planeNormal);
+    
+    if(Math.round(angleToPlaneNormal * 180 / Math.PI) != 90){
+      aircraft.rotateZ(-2*rotationAngle);
+    }
+
+
+    //Turn around all ac-s that are facing in the wrong direction
+    const quaternionAfterTurn = aircraft.getWorldQuaternion(new THREE.Quaternion());
+    const directionAfterTurn = new THREE.Vector3(1, 0, 0).applyQuaternion( quaternionAfterTurn );
+
+    const acToEnd = endPoint.sub(pointOnCurve).normalize();
+    const projectOnACTOEND = directionAfterTurn.projectOnVector(acToEnd).normalize();
+    
+    acToEnd.set(Math.round(acToEnd.getComponent(0) * 100000), Math.round(acToEnd.getComponent(1) * 100000), Math.round(acToEnd.getComponent(2) * 100000));
+    projectOnACTOEND.set(Math.round(projectOnACTOEND.getComponent(0) * 100000), Math.round(projectOnACTOEND.getComponent(1) * 100000), Math.round(projectOnACTOEND.getComponent(2) * 100000));
+
+    if(acToEnd.equals(projectOnACTOEND) == false){
+      aircraft.rotateZ(Math.PI);
+    }
+
+    scene.add(aircraft);
+  }
+}
+
+function addAircraft(position, scene) {
+    let aircraft = scene.children[2].clone(false);
+    aircraft.position.copy(position);
+
+    return aircraft;
+}
+
+function displayAircrafts(scene, renderer, camera, countryCode, flightData) {
+  const airports = getAirportsOfHoveredCountry(countryCode, flightData);
+  TWEEN.removeAll();
+  for(let i = 4; i <= scene.children.length - 1; i++) {
+    if(airports.includes(scene.children[i].name.slice(0, 4)) || airports.includes(scene.children[i].name.slice(6, 10))) {
+      if(scene.children[i].material.isMeshBasicMaterial != true && scene.children[i].layers.mask != 1) {
+        animateSpline(scene.children[i], scene, camera, renderer);
+      }
+      if(scene.children[i].material.isMeshBasicMaterial == true){
+          scene.children[i].material.opacity = 0;
+          scene.children[i].material.transparent = true;
+          scene.children[i].material.wireframe = false;
+        if(scene.children[i].layers != 1) {
+          scene.children[i].layers.set(1);
+        }
+        animateAircrafts(scene.children[i]);
+      }
+    }
+  }
+}
+
+function hideAircrafts(scene) {
+  for(let i = 4; i <= scene.children.length - 1; i++) {
+    scene.children[i].layers.set(2);
+  }
+}
+
+const getAirportsOfHoveredCountry = (countryCode, flightData) => {
+  const airporstByCountry = [];
+  for(let i = 0 ; i <= flightData.sortedAirports.length - 1; i++) {
+    if(flightData.sortedAirports[i].country_code == countryCode){
+      airporstByCountry.push(flightData.sortedAirports[i].icao_code);
+    }
+  }
+
+  return airporstByCountry;
+}
+
+function animateSpline(spline) {
+  let fromPoint = {point: 0};
+  let geometry = spline.geometry;
+  let toPoint = {point: geometry.attributes.position.count}
+  let tween =  new TWEEN.Tween(fromPoint).to(toPoint, 1000).delay(1000)
+  tween.onStart(()=>{
+    if(spline.layers != 1) {
+      spline.layers.set(1);
+    }
+  })
+  tween.onUpdate(()=>{
+    geometry.setDrawRange( 0, fromPoint.point );
+  }).start();
+}
+
+function animateAircrafts(aircraft){
+  let tween =  new TWEEN.Tween(aircraft.material).to({opacity: 1}, 1000).delay(1250)
+  tween.start();
+}
+
+export {importAircraft, flightController, getAirportsOfHoveredCountry, displayAircrafts, hideAircrafts, TWEEN};

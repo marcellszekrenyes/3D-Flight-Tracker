@@ -1,21 +1,13 @@
-
+import * as THREE from 'three';
 
 function sphericalToCartesian(phi, theta) {
-    const xyz = [];
-    const radius = 4;
-    
+    const radius = 3.795;
 
-    xyz[0] = radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180)
-    xyz[1] = radius * Math.cos(theta * Math.PI / 180) * Math.sin(phi * Math.PI / 180)
-    xyz[2] = radius *Math.sin(theta * Math.PI / 180)
+    const position = new THREE.Vector3(radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180),
+                radius * Math.cos(theta * Math.PI / 180) * Math.sin(phi * Math.PI / 180),
+                radius *Math.sin(theta * Math.PI / 180))
 
-    // x = R * cos(lat) * cos(lon)
-
-    // y = R * cos(lat) * sin(lon)
-
-    // z = R *sin(lat)
-
-    return xyz;
+    return position;
 }
 
 function convertCoordinates(testObject){
@@ -45,4 +37,12 @@ function generateIndices(vertices) {
     return indices;
 }
 
-export {convertCoordinates, generateIndices}
+function convertAirplaneLocation(phi, theta, radius) {
+    const position = new THREE.Vector3(radius * Math.cos(theta * Math.PI / 180) * Math.cos(phi * Math.PI / 180),
+                radius * Math.cos(theta * Math.PI / 180) * Math.sin(phi * Math.PI / 180),
+                radius *Math.sin(theta * Math.PI / 180));
+
+    return position;
+}
+
+export {convertCoordinates, generateIndices, sphericalToCartesian, convertAirplaneLocation}
