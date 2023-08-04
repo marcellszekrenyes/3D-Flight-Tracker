@@ -1,6 +1,6 @@
 # 3D-Flight-Tracker
 
-![Flight Tracker in action](/blob/main/flightTrackerSample.png)
+![Flight Tracker in action](/flightTrackerSample.png)
 
 An interactive 3D flight visualizer built with JavaScript, THREE.js and TWEEN.js.
 The aim of this project was learning abot asynchronous JS and API calls, but it have outgrown itself.
