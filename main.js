@@ -24,7 +24,7 @@ animate();
 
 //Load all data for the scene and set up the eventlistener for raycasting
 async function init() {
-  await initializeGlobe("./lowResGlobe.json", renderer, camera, scene, loader);
+  await initializeGlobe("./public/lowResGlobe.json", renderer, camera, scene, loader);
   await importAircraft("./public/wireframeAircraft.json", renderer, camera, scene, loader);
   const flightData = await flightController(scene);
 
