@@ -10,3 +10,8 @@ Originally I was planning a weather map, but after half way in I decided to swit
 
 Currently the page works with historical data from AirLabs, hopefully in the future I will be able to make it more
 up to date and possibly implement some new features as I keep learning.
+
+Plans for the near future:
+- reduce loading time
+- get real time data
+- display flight informations
