@@ -46,14 +46,14 @@ async function flightController(scene) {
 }
 
 async function fetchFlightData() {
-  const response = await fetch("/public/flights.json");
+  const response = await fetch("./flights.json");
   const flights = await response.json();
 
   return flights;
 }
 
 async function fetchAirportData() {
-  const response = await fetch("/public/airports.json");
+  const response = await fetch("./airports.json");
   const airports = await response.json();
 
   return airports;
