@@ -11,13 +11,17 @@ camera.layers.enable(1);
 
 let renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+const canvas = document.body.appendChild(renderer.domElement);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 directionalLight.position.set(1, 10, 5);
 scene.add(directionalLight);
 
+//Objectloader of three.js
 const loader = new THREE.ObjectLoader();
+
+//loader screen
+const loadingScreen = document.getElementById("loaderContainer");
 
 init();
 animate();
@@ -27,10 +31,27 @@ async function init() {
   await initializeGlobe("./lowResGlobe.json", renderer, camera, scene, loader);
   await importAircraft("./wireframeAircraft.json", renderer, camera, scene, loader);
   const flightData = await flightController(scene);
-
+  hideCanvas();
+  showCanvas();
   renderer.domElement.addEventListener( 'pointermove', (event) => {
     onPointerMove(event, camera, scene, renderer, flightData);
   });
+
+
+}
+
+function hideCanvas() {
+  console.log(canvas);
+  canvas.visible = false;
+}
+
+function showCanvas() {
+  loadingScreen.classList.add('fadeEffect');
+  setTimeout(() => {
+    loadingScreen.remove();
+    canvas.classList.add('fadeinEffect');
+    setTimeout();
+  }, 500);
 }
 
 function animate() {

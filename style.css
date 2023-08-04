@@ -1,4 +1,9 @@
+* {
+  overflow: hidden;
+}
+
 body {
+  background-color: black;
   box-sizing: border-box;
   overflow: hidden;
   margin: 0;
@@ -10,7 +15,40 @@ html {
   margin: 0;
 }
 
-* {
-  
-  overflow: hidden;
+canvas {
+opacity: 0;
+}
+
+#loaderContainer {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: black;
+}
+
+.loader {
+  border: 16px solid rgb(114, 7, 230);
+  border-radius: 50%;
+  border-top: 16px solid rgb(31, 237, 2);;
+  width: 120px;
+  height: 120px;
+  -webkit-animation: spin 2s linear infinite; /* Safari */
+  animation: spin 2s linear infinite;
+}
+
+.fadeEffect {
+  transition: 2s;
+  opacity: 0;
+}
+
+.fadeinEffect {
+  transition: 2s;
+  opacity: 1;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
