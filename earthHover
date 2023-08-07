@@ -83,6 +83,8 @@ if ( intersects.length > 0 && intersects[0].object.name != 'sphere') {
         selectedObject.parent.children[i].material = new THREE.MeshBasicMaterial({color: 'rgb(41, 41, 43)'});
         selectedObject.parent.children[i].material.color.set( 'rgb(41, 41, 43)' );
         selectedObject.parent.children[i].layers.set(1);
+        console.log('hovered country');
+        console.log(selectedObject);
         }
       }
       displayAircrafts(scene, renderer, camera, selectedObject.parent.name, flightData);
