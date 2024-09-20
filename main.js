@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {initializeGlobe, onPointerMove} from './earthHover';
 import {importAircraft, flightController, TWEEN} from './flightController';
+import { hideAircrafts } from './flightController';
 
 //
 let scene = new THREE.Scene();
@@ -22,6 +23,7 @@ const loader = new THREE.ObjectLoader();
 
 //loader screen
 const loadingScreen = document.getElementById("loaderContainer");
+const options = document.getElementById('options');
 
 init();
 animate();
@@ -34,10 +36,44 @@ async function init() {
   hideCanvas();
   showCanvas();
   renderer.domElement.addEventListener( 'pointermove', (event) => {
-    onPointerMove(event, camera, scene, renderer, flightData);
+    if(document.getElementById('hoverCheckbox').checked){
+      onPointerMove(event, camera, scene, renderer, flightData);
+    }
   });
 
-
+  document.getElementById('options').addEventListener('click', () => {
+    if (document.getElementById('hoverCheckbox').checked == false && document.getElementById('routesCheckbox').checked == false) {
+      for(let i = 4; i <= scene.children.length - 1; i++) {
+        if(scene.children[i].material.isMeshBasicMaterial == true){
+          scene.children[i].material.opacity = 1;
+          scene.children[i].material.transparent = false;
+          scene.children[i].material.wireframe = false;
+          if(scene.children[i].layers != 1) {
+            scene.children[i].layers.set(1);
+          }
+        }
+      }
+    } else if(document.getElementById('hoverCheckbox').checked == false && document.getElementById('routesCheckbox').checked == true) {
+      for(let i = 4; i <= scene.children.length - 1; i++) {
+        scene.children[i].material.opacity = 1;
+        scene.children[i].material.transparent = false;
+        scene.children[i].material.wireframe = false;
+        scene.children[i].layers.set(1);
+      }
+    }
+    
+    
+    if (document.getElementById('hoverCheckbox').checked == true) {
+        for(let i = 4; i <= scene.children.length - 1; i++) {
+          scene.children[i].material.opacity = 0;
+          scene.children[i].material.transparent = true;
+          scene.children[i].material.wireframe = false;
+          scene.children[i].layers.set(2);
+        }
+    }
+  });
+  
+  //nem mukodik a ket radio button, vonalak nem kapcsolnak ki + visszakapcs utan a hover szar
 }
 
 function hideCanvas() {

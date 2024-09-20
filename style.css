@@ -52,3 +52,61 @@ opacity: 0;
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+.routes-checkbox {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  z-index: 1001; /* Ensure it appears above other layers */
+  font-size: 1em;
+}
+
+.routes-checkbox input[type="checkbox"] {
+  margin-right: 5px;
+}
+
+/* Style for the routes checkbox */
+.routes-checkbox {
+  position: absolute;
+  top: 20px; /* Adjust as needed */
+  right: 20px; /* Adjust as needed */
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  z-index: 1001; /* Ensure it appears above other layers */
+}
+
+/* Style for the routes checkbox container */
+.routes-checkbox {
+  position: absolute;
+  top: 20px; /* Adjust as needed */
+  right: 20px; /* Adjust as needed */
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  z-index: 1001; /* Ensure it appears above other layers */
+}
+
+.options {
+  position: absolute; /* Position above other elements */
+  top: 20px;         /* Adjust as needed */
+  right: 20px;       /* Adjust as needed */
+  z-index: 1000;     /* Ensure it appears above other elements */
+  background-color: white; /* Optional: background for visibility */
+  padding: 5px;      /* Optional: padding */
+  border-radius: 5px; /* Optional: rounded corners */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* Optional: shadow */
+}
+
+.options label {
+  display: block; /* Stack checkboxes vertically */
+  margin: 5px 0; /* Space between checkboxes */
+}
+
+

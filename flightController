@@ -3,7 +3,6 @@ import TWEEN from '@tweenjs/tween.js';
 import { sphericalToCartesian, convertAirplaneLocation } from './coordinateConverter';
 import { drawCurve, getControlPoints } from './arcDrawer';
 
-
 function importAircraft(file, renderer, camera, scene, loader) {
   loader.load(
     // resource URL
@@ -188,7 +187,9 @@ function displayAircrafts(scene, renderer, camera, countryCode, flightData) {
   for(let i = 4; i <= scene.children.length - 1; i++) {
     if(airports.includes(scene.children[i].name.slice(0, 4)) || airports.includes(scene.children[i].name.slice(6, 10))) {
       if(scene.children[i].material.isMeshBasicMaterial != true && scene.children[i].layers.mask != 1) {
-        animateSpline(scene.children[i], scene, camera, renderer);
+        if(document.getElementById('routesCheckbox').checked){
+          animateSpline(scene.children[i], scene, camera, renderer);
+        }
       }
       if(scene.children[i].material.isMeshBasicMaterial == true){
           scene.children[i].material.opacity = 0;

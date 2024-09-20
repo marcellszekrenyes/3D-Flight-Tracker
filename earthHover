@@ -4,7 +4,6 @@ import * as dat from 'dat.gui';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { displayAircrafts, hideAircrafts } from './flightController';
 
-
 let raycaster = new THREE.Raycaster();
 let mouse = new THREE.Vector2();
 let lastHoveredCountry = "";
